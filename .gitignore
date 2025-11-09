@@ -1,0 +1,44 @@
+# Archivos compilados
+*.class
+*.jar
+*.war
+*.ear
+
+# Directorio de compilación
+bin/
+build/
+target/
+out/
+
+# Base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
+biblioteca.db
+
+# Archivos de configuración IDE
+.vscode/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Backups
+*~
+*.bak
+*.swp
+*.tmp
+
+# Reportes y documentos generados
+*.txt
+*.csv
+reportes/
+
+# Node modules (si hay)
+node_modules/
