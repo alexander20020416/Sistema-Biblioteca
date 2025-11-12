@@ -23,6 +23,14 @@
         <sonar.login>sqp_70eb81a78b7d8c4457b58892c37d2d5ff13606f2</sonar.login>
     </properties>
 
+        <dependencies>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.44.0.0</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <plugins>
