@@ -24,53 +24,64 @@ public class PrestamoService {
         try {
             // Validar usuario
             Usuario usuario = usuarioDAO.buscar(usuarioId);
-            if (usuario == null) {
+            boolean usuarioExiste = (usuario != null);
+            boolean usuarioEstaActivo = usuarioExiste && usuario.isActivo();
+            
+            if (!usuarioExiste) {
                 throw new PrestamoException("Usuario no encontrado");
             }
-            if (!usuario.isActivo()) {
+            if (!usuarioEstaActivo) {
                 throw new PrestamoException("Usuario inactivo");
             }
             
             // Validar libro
             Libro libro = libroDAO.buscar(libroIsbn);
-            if (libro == null) {
+            boolean libroExiste = (libro != null);
+            boolean libroEstaDisponible = libroExiste && libro.isDisponible();
+            
+            if (!libroExiste) {
                 throw new PrestamoException("Libro no encontrado");
             }
-            if (!libro.isDisponible()) {
+            if (!libroEstaDisponible) {
                 throw new PrestamoException("Libro no disponible");
             }
             
             // Crear préstamo
-            String fechaHoy = CalculadoraFechas.obtenerFechaActual();
-            String fechaDevolucion = CalculadoraFechas.agregarDias(fechaHoy, diasPrestamo);
+            String fechaActual = CalculadoraFechas.obtenerFechaActual();
+            String fechaDevolucionEsperada = CalculadoraFechas.agregarDias(fechaActual, diasPrestamo);
             
             Prestamo prestamo = new Prestamo();
             prestamo.setUsuarioId(usuarioId);
             prestamo.setLibroIsbn(libroIsbn);
-            prestamo.setFechaPrestamo(fechaHoy);
-            prestamo.setFechaDevolucionEsperada(fechaDevolucion);
+            prestamo.setFechaPrestamo(fechaActual);
+            prestamo.setFechaDevolucionEsperada(fechaDevolucionEsperada);
             prestamo.setEstado("ACTIVO");
             prestamo.setEmpleadoId(empleadoId);
             
             int prestamoId = prestamoDAO.insertar(prestamo);
             
             // Actualizar disponibilidad del libro
+            int nuevoContadorPrestamos = libro.getVecesPrestado() + 1;
             libro.setDisponible(false);
-            libro.setVecesPrestado(libro.getVecesPrestado() + 1);
+            libro.setVecesPrestado(nuevoContadorPrestamos);
             libroDAO.actualizar(libro);
             
             // Actualizar contador de préstamos del usuario
-            usuario.setTotalPrestamos(usuario.getTotalPrestamos() + 1);
+            int nuevoTotalPrestamosUsuario = usuario.getTotalPrestamos() + 1;
+            usuario.setTotalPrestamos(nuevoTotalPrestamosUsuario);
             usuarioDAO.actualizar(usuario);
             
             // Crear notificación
-            Notificacion notif = new Notificacion();
-            notif.setUsuarioId(usuarioId);
-            notif.setTipo("PRESTAMO");
-            notif.setMensaje("Préstamo realizado: " + libro.getTitulo());
-            notif.setFecha(fechaHoy);
-            notif.setLeida(false);
-            notificacionDAO.insertar(notif);
+            String tituloLibro = libro.getTitulo();
+            String mensajeNotificacion = "Préstamo realizado: " + tituloLibro;
+            
+            Notificacion notificacion = new Notificacion();
+            notificacion.setUsuarioId(usuarioId);
+            notificacion.setTipo("PRESTAMO");
+            notificacion.setMensaje(mensajeNotificacion);
+            notificacion.setFecha(fechaActual);
+            notificacion.setLeida(false);
+            notificacionDAO.insertar(notificacion);
             
             return prestamoId;
         } catch (DatabaseException e) {

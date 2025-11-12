@@ -8,6 +8,8 @@ import java.util.List;
 
 public class ReservaService {
     
+    private static final int DIAS_EXPIRACION_RESERVA = 3;
+    
     private ReservaDAO reservaDAO;
     private LibroDAO libroDAO;
     private UsuarioDAO usuarioDAO;
@@ -20,60 +22,60 @@ public class ReservaService {
     
     public int crearReserva(String usuarioId, String libroIsbn) throws BibliotecaException {
         try {
-            Usuario u = usuarioDAO.buscar(usuarioId);
-            if (u == null || !u.isActivo()) {
+            Usuario usuario = usuarioDAO.buscar(usuarioId);
+            if (usuario == null || !usuario.isActivo()) {
                 throw new BibliotecaException("Usuario inválido");
             }
             
-            Libro l = libroDAO.buscar(libroIsbn);
-            if (l == null) {
+            Libro libro = libroDAO.buscar(libroIsbn);
+            if (libro == null) {
                 throw new BibliotecaException("Libro no encontrado");
             }
             
-            String fechaHoy = CalculadoraFechas.obtenerFechaActual();
-            String fechaExpiracion = CalculadoraFechas.agregarDias(fechaHoy, 3);
+            String fechaActual = CalculadoraFechas.obtenerFechaActual();
+            String fechaExpiracion = CalculadoraFechas.agregarDias(fechaActual, DIAS_EXPIRACION_RESERVA);
             
-            Reserva r = new Reserva();
-            r.setUsuarioId(usuarioId);
-            r.setLibroIsbn(libroIsbn);
-            r.setFechaReserva(fechaHoy);
-            r.setFechaExpiracion(fechaExpiracion);
-            r.setEstado("ACTIVA");
+            Reserva nuevaReserva = new Reserva();
+            nuevaReserva.setUsuarioId(usuarioId);
+            nuevaReserva.setLibroIsbn(libroIsbn);
+            nuevaReserva.setFechaReserva(fechaActual);
+            nuevaReserva.setFechaExpiracion(fechaExpiracion);
+            nuevaReserva.setEstado("ACTIVA");
             
-            return reservaDAO.insertar(r);
+            return reservaDAO.insertar(nuevaReserva);
         } catch (DatabaseException e) {
-            throw new BibliotecaException("Error", e);
+            throw new BibliotecaException("Error al crear reserva", e);
         }
     }
     
     public boolean cancelarReserva(int reservaId) throws BibliotecaException {
         try {
-            List<Reserva> reservas = reservaDAO.obtenerActivas();
-            for (Reserva r : reservas) {
-                if (r.getId() == reservaId) {
-                    r.setEstado("CANCELADA");
-                    return reservaDAO.actualizar(r);
+            List<Reserva> reservasActivas = reservaDAO.obtenerActivas();
+            for (Reserva reserva : reservasActivas) {
+                if (reserva.getId() == reservaId) {
+                    reserva.setEstado("CANCELADA");
+                    return reservaDAO.actualizar(reserva);
                 }
             }
             return false;
         } catch (DatabaseException e) {
-            throw new BibliotecaException("Error", e);
+            throw new BibliotecaException("Error al cancelar reserva", e);
         }
     }
     
     public void expirarReservas() throws BibliotecaException {
         try {
-            String fechaHoy = CalculadoraFechas.obtenerFechaActual();
-            List<Reserva> activas = reservaDAO.obtenerActivas();
+            String fechaActual = CalculadoraFechas.obtenerFechaActual();
+            List<Reserva> reservasActivas = reservaDAO.obtenerActivas();
             
-            for (Reserva r : activas) {
-                if (CalculadoraFechas.esFechaPasada(r.getFechaExpiracion())) {
-                    r.setEstado("EXPIRADA");
-                    reservaDAO.actualizar(r);
+            for (Reserva reserva : reservasActivas) {
+                if (CalculadoraFechas.esFechaPasada(reserva.getFechaExpiracion())) {
+                    reserva.setEstado("EXPIRADA");
+                    reservaDAO.actualizar(reserva);
                 }
             }
         } catch (DatabaseException e) {
-            throw new BibliotecaException("Error", e);
+            throw new BibliotecaException("Error al expirar reservas", e);
         }
     }
 }

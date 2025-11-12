@@ -25,59 +25,22 @@ public class BibliotecaService {
     public boolean registrarLibroCompleto(String isbn, String titulo, String nombreAutor, String nacionalidadAutor, String nombreEditorial, String paisEditorial, String nombreCategoria, int anio, int paginas, int sedeId) throws BibliotecaException {
         try {
             // Validar ISBN
-            if (!ValidadorDatos.validarISBN(isbn)) {
+            boolean isbnValido = ValidadorDatos.validarISBN(isbn);
+            if (!isbnValido) {
                 throw new BibliotecaException("ISBN inválido");
             }
             
             // Verificar si el libro ya existe
             Libro libroExistente = libroDAO.buscar(isbn);
-            if (libroExistente != null) {
+            boolean libroYaExiste = (libroExistente != null);
+            if (libroYaExiste) {
                 throw new BibliotecaException("El libro ya existe");
             }
             
-            // Buscar o crear autor
-            int autorId = -1;
-            for (Autor a : autorDAO.obtenerTodos()) {
-                if (a.getNombre().equalsIgnoreCase(nombreAutor)) {
-                    autorId = a.getId();
-                    break;
-                }
-            }
-            if (autorId == -1) {
-                Autor nuevoAutor = new Autor();
-                nuevoAutor.setNombre(nombreAutor);
-                nuevoAutor.setNacionalidad(nacionalidadAutor);
-                autorId = autorDAO.insertar(nuevoAutor);
-            }
-            
-            // Buscar o crear editorial
-            int editorialId = -1;
-            for (Editorial e : editorialDAO.obtenerTodas()) {
-                if (e.getNombre().equalsIgnoreCase(nombreEditorial)) {
-                    editorialId = e.getId();
-                    break;
-                }
-            }
-            if (editorialId == -1) {
-                Editorial nuevaEditorial = new Editorial();
-                nuevaEditorial.setNombre(nombreEditorial);
-                nuevaEditorial.setPais(paisEditorial);
-                editorialId = editorialDAO.insertar(nuevaEditorial);
-            }
-            
-            // Buscar o crear categoría
-            int categoriaId = -1;
-            for (Categoria c : categoriaDAO.obtenerTodas()) {
-                if (c.getNombre().equalsIgnoreCase(nombreCategoria)) {
-                    categoriaId = c.getId();
-                    break;
-                }
-            }
-            if (categoriaId == -1) {
-                Categoria nuevaCategoria = new Categoria();
-                nuevaCategoria.setNombre(nombreCategoria);
-                categoriaId = categoriaDAO.insertar(nuevaCategoria);
-            }
+            // Obtener o crear entidades relacionadas
+            int autorId = obtenerOCrearAutor(nombreAutor, nacionalidadAutor);
+            int editorialId = obtenerOCrearEditorial(nombreEditorial, paisEditorial);
+            int categoriaId = obtenerOCrearCategoria(nombreCategoria);
             
             // Crear el libro
             Libro libro = new Libro();
@@ -96,6 +59,50 @@ public class BibliotecaService {
         } catch (DatabaseException e) {
             throw new BibliotecaException("Error al registrar libro", e);
         }
+    }
+    
+    private int obtenerOCrearAutor(String nombreAutor, String nacionalidadAutor) throws DatabaseException {
+        for (Autor autor : autorDAO.obtenerTodos()) {
+            boolean nombreCoincide = autor.getNombre().equalsIgnoreCase(nombreAutor);
+            if (nombreCoincide) {
+                return autor.getId();
+            }
+        }
+        
+        // Si no existe, crear nuevo autor
+        Autor nuevoAutor = new Autor();
+        nuevoAutor.setNombre(nombreAutor);
+        nuevoAutor.setNacionalidad(nacionalidadAutor);
+        return autorDAO.insertar(nuevoAutor);
+    }
+    
+    private int obtenerOCrearEditorial(String nombreEditorial, String paisEditorial) throws DatabaseException {
+        for (Editorial editorial : editorialDAO.obtenerTodas()) {
+            boolean nombreCoincide = editorial.getNombre().equalsIgnoreCase(nombreEditorial);
+            if (nombreCoincide) {
+                return editorial.getId();
+            }
+        }
+        
+        // Si no existe, crear nueva editorial
+        Editorial nuevaEditorial = new Editorial();
+        nuevaEditorial.setNombre(nombreEditorial);
+        nuevaEditorial.setPais(paisEditorial);
+        return editorialDAO.insertar(nuevaEditorial);
+    }
+    
+    private int obtenerOCrearCategoria(String nombreCategoria) throws DatabaseException {
+        for (Categoria categoria : categoriaDAO.obtenerTodas()) {
+            boolean nombreCoincide = categoria.getNombre().equalsIgnoreCase(nombreCategoria);
+            if (nombreCoincide) {
+                return categoria.getId();
+            }
+        }
+        
+        // Si no existe, crear nueva categoría
+        Categoria nuevaCategoria = new Categoria();
+        nuevaCategoria.setNombre(nombreCategoria);
+        return categoriaDAO.insertar(nuevaCategoria);
     }
     
     public Libro buscarLibro(String isbn) throws BibliotecaException {
