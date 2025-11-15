@@ -53,9 +53,9 @@ public class UsuarioService {
             
             return resultado;
         } catch (DatabaseException e) {
-            throw new UsuarioException("Error", e);
+            throw new UsuarioException("Error al acceder a la base de datos: " + e.getMessage(), e);
         } catch (BibliotecaException e) {
-            throw new UsuarioException("Error", e);
+            throw new UsuarioException("Error al generar códigos: " + e.getMessage(), e);
         }
     }
     
@@ -63,7 +63,7 @@ public class UsuarioService {
         try {
             return usuarioDAO.buscar(id);
         } catch (DatabaseException e) {
-            throw new UsuarioException("Error", e);
+            throw new UsuarioException("Error al buscar usuario: " + e.getMessage(), e);
         }
     }
     
@@ -76,7 +76,7 @@ public class UsuarioService {
             u.setActivo(false);
             return usuarioDAO.actualizar(u);
         } catch (DatabaseException e) {
-            throw new UsuarioException("Error", e);
+            throw new UsuarioException("Error al desactivar usuario: " + e.getMessage(), e);
         }
     }
 }
