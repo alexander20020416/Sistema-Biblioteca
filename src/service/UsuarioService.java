@@ -1,82 +1,117 @@
 package service;
 
-import model.*;
-import dao.*;
-import exception.*;
-import util.*;
+import model.Usuario;
+import model.Notificacion;
+import dao.UsuarioDAO;
+import dao.NotificacionDAO;
+import exception.UsuarioException;
+import exception.DatabaseException;
+import exception.BibliotecaException;
+import util.ValidadorDatos;
+import util.GeneradorCodigos;
+import util.CalculadoraFechas;
 
 public class UsuarioService {
-    
+
     private UsuarioDAO usuarioDAO;
     private NotificacionDAO notificacionDAO;
-    
+
     public UsuarioService() {
         this.usuarioDAO = new UsuarioDAO();
         this.notificacionDAO = new NotificacionDAO();
     }
-    
-    public boolean registrarUsuario(String nombre, String email, String telefono, String direccion, String tipo) throws UsuarioException {
+
+    public boolean registrarUsuario(String nombre, String email, String telefono,
+                                    String direccion, String tipo) throws UsuarioException {
+
         try {
-            // Validaciones
-            if (!ValidadorDatos.validarNombre(nombre)) {
-                throw new UsuarioException("Nombre inválido");
-            }
-            if (!ValidadorDatos.validarEmail(email)) {
-                throw new UsuarioException("Email inválido");
-            }
-            if (!ValidadorDatos.validarTelefono(telefono)) {
-                throw new UsuarioException("Teléfono inválido");
-            }
-            
-            Usuario usuario = new Usuario();
-            usuario.setId(GeneradorCodigos.generarCodigoUsuario());
-            usuario.setNombre(nombre);
-            usuario.setEmail(email);
-            usuario.setTelefono(telefono);
-            usuario.setDireccion(direccion);
-            usuario.setTipo(tipo);
-            usuario.setFechaRegistro(CalculadoraFechas.obtenerFechaActual());
-            usuario.setActivo(true);
-            usuario.setTotalPrestamos(0);
-            
+            validarDatos(nombre, email, telefono);
+
+            Usuario usuario = construirUsuario(nombre, email, telefono, direccion, tipo);
+
             boolean resultado = usuarioDAO.insertar(usuario);
-            
+
             if (resultado) {
-                Notificacion notif = new Notificacion();
-                notif.setUsuarioId(usuario.getId());
-                notif.setTipo("BIENVENIDA");
-                notif.setMensaje("Bienvenido a la biblioteca");
-                notif.setFecha(CalculadoraFechas.obtenerFechaActual());
-                notif.setLeida(false);
-                notificacionDAO.insertar(notif);
+                registrarNotificacionBienvenida(usuario);
             }
-            
+
             return resultado;
-        } catch (DatabaseException e) {
-            throw new UsuarioException("Error al acceder a la base de datos: " + e.getMessage(), e);
+
         } catch (BibliotecaException e) {
-            throw new UsuarioException("Error al generar códigos: " + e.getMessage(), e);
+            throw new UsuarioException("Error", e);
         }
     }
-    
+
+    // ============================================================
+    // MÉTODOS EXTRAÍDOS (EXTRACT METHOD)
+    // ============================================================
+
+    private void validarDatos(String nombre, String email, String telefono) throws UsuarioException {
+
+        if (!ValidadorDatos.validarNombre(nombre)) {
+            throw new UsuarioException("Nombre inválido");
+        }
+        if (!ValidadorDatos.validarEmail(email)) {
+            throw new UsuarioException("Email inválido");
+        }
+        if (!ValidadorDatos.validarTelefono(telefono)) {
+            throw new UsuarioException("Teléfono inválido");
+        }
+    }
+
+    private Usuario construirUsuario(String nombre, String email, String telefono,
+                                     String direccion, String tipo) {
+
+        Usuario usuario = new Usuario();
+        usuario.setId(GeneradorCodigos.generarCodigoUsuario());
+        usuario.setNombre(nombre);
+        usuario.setEmail(email);
+        usuario.setTelefono(telefono);
+        usuario.setDireccion(direccion);
+        usuario.setTipo(tipo);
+        usuario.setFechaRegistro(CalculadoraFechas.obtenerFechaActual());
+        usuario.setActivo(true);
+        usuario.setTotalPrestamos(0);
+
+        return usuario;
+    }
+
+    private void registrarNotificacionBienvenida(Usuario usuario) throws DatabaseException {
+        Notificacion notif = new Notificacion();
+        notif.setUsuarioId(usuario.getId());
+        notif.setTipo("BIENVENIDA");
+        notif.setMensaje("Bienvenido a la biblioteca");
+        notif.setFecha(CalculadoraFechas.obtenerFechaActual());
+        notif.setLeida(false);
+
+        notificacionDAO.insertar(notif);
+    }
+
+    // ============================================================
+    // RESTO DE MÉTODOS ORIGINALES
+    // ============================================================
+
     public Usuario buscarUsuario(String id) throws UsuarioException {
         try {
             return usuarioDAO.buscar(id);
         } catch (DatabaseException e) {
-            throw new UsuarioException("Error al buscar usuario: " + e.getMessage(), e);
+            throw new UsuarioException("Error", e);
         }
     }
-    
+
     public boolean desactivarUsuario(String id) throws UsuarioException {
         try {
-            Usuario u = usuarioDAO.buscar(id);
-            if (u == null) {
+            Usuario usuario = usuarioDAO.buscar(id);
+
+            if (usuario == null) {
                 throw new UsuarioException("Usuario no encontrado");
             }
-            u.setActivo(false);
-            return usuarioDAO.actualizar(u);
+
+            usuario.setActivo(false);
+            return usuarioDAO.actualizar(usuario);
+
         } catch (DatabaseException e) {
-            throw new UsuarioException("Error al desactivar usuario: " + e.getMessage(), e);
+            throw new UsuarioException("Error", e);
         }
     }
 }
